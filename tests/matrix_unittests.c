@@ -8,21 +8,21 @@
 #include "matrix_unittests.h"
 
 /**
-* \brief Tests matrix inversion using Cholesky decomposition
-*/
+ * \brief Tests matrix inversion using Cholesky decomposition
+ */
 void test_matrix_inverse()
 {
     int result;
 
     // data buffer for the original and decomposed matrix
-    matrix_data_t d[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t d[3 * 3] = {1, 0.5, 0,
+                              0.5, 1, 0,
+                              0, 0, 1};
 
     // data buffer for the inverted matrix
-    matrix_data_t di[3 * 3] = { 0, 0, 0,
-        0, 0, 0,
-        0, 0, 0 };
+    matrix_data_t di[3 * 3] = {0, 0, 0,
+                               0, 0, 0,
+                               0, 0, 0};
 
     // prepare matrix structures
     matrix_t m, mi;
@@ -43,18 +43,18 @@ void test_matrix_inverse()
 }
 
 /*!
-* \brief Tests column and row fetching
-*/
+ * \brief Tests column and row fetching
+ */
 void test_matrix_copy_cols_and_rows()
 {
 
     // data buffer for the original and decomposed matrix
-    matrix_data_t d[3 * 4] = { 1, 2, 3, 10,
-        4, 5, 6, 11,
-        7, 8, 9, 12 };
+    matrix_data_t d[3 * 4] = {1, 2, 3, 10,
+                              4, 5, 6, 11,
+                              7, 8, 9, 12};
 
     // data buffer for the copied row
-    matrix_data_t v[4] = { 0, 0, 0 };
+    matrix_data_t v[4] = {0, 0, 0};
     matrix_data_t *vp;
 
     // prepare matrix structure
@@ -85,23 +85,23 @@ void test_matrix_copy_cols_and_rows()
 }
 
 /*!
-*  \brief Tests matrix multiplication
-*/
+ *  \brief Tests matrix multiplication
+ */
 void test_matrix_multiply_aux()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 4] = { 1, 2, 3, 4,
-        5, 6, 7, 8,
-        9, 10, 11, 12 };
+    matrix_data_t bd[3 * 4] = {1, 2, 3, 4,
+                               5, 6, 7, 8,
+                               9, 10, 11, 12};
 
-    matrix_data_t cd[3 * 4] = { 0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0 };
+    matrix_data_t cd[3 * 4] = {0, 0, 0, 0,
+                               0, 0, 0, 0,
+                               0, 0, 0, 0};
 
-    matrix_data_t aux[3] = { 0, 0, 0 };
+    matrix_data_t aux[3] = {0, 0, 0};
 
     // prepare matrix structures
     matrix_t a, b, c;
@@ -120,21 +120,21 @@ void test_matrix_multiply_aux()
 }
 
 /*!
-*  \brief Tests matrix multiplication with transposed B
-*/
+ *  \brief Tests matrix multiplication with transposed B
+ */
 void test_matrix_multiply_transb()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
-    matrix_data_t cd[3 * 3] = { 0, 0, 0,
-        0, 0, 0,
-        0, 0, 0 };
+    matrix_data_t cd[3 * 3] = {0, 0, 0,
+                               0, 0, 0,
+                               0, 0, 0};
 
     // prepare matrix structures
     matrix_t a, b, c;
@@ -153,21 +153,21 @@ void test_matrix_multiply_transb()
 }
 
 /*!
-*  \brief Tests matrix multiplication with transposed B
-*/
+ *  \brief Tests matrix multiplication with transposed B
+ */
 void test_matrix_multscale_transb()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
-    matrix_data_t cd[3 * 3] = { 0, 0, 0,
-        0, 0, 0,
-        0, 0, 0 };
+    matrix_data_t cd[3 * 3] = {0, 0, 0,
+                               0, 0, 0,
+                               0, 0, 0};
 
     // prepare matrix structures
     matrix_t a, b, c;
@@ -186,21 +186,21 @@ void test_matrix_multscale_transb()
 }
 
 /*!
-*  \brief Tests matrix multiplication with transposed B
-*/
+ *  \brief Tests matrix multiplication with transposed B
+ */
 void test_matrix_multadd_transb()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
-    matrix_data_t cd[3 * 3] = { 10, 20, 30,
-        40, 50, 60,
-        70, 80, 90 };
+    matrix_data_t cd[3 * 3] = {10, 20, 30,
+                               40, 50, 60,
+                               70, 80, 90};
 
     // prepare matrix structures
     matrix_t a, b, c;
@@ -219,17 +219,17 @@ void test_matrix_multadd_transb()
 }
 
 /*!
-*  \brief Tests matrix multiplication
-*/
+ *  \brief Tests matrix multiplication
+ */
 void test_matrix_multiply_vector()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 1] = { 1, 2, 3 };
+    matrix_data_t bd[3 * 1] = {1, 2, 3};
 
-    matrix_data_t cd[3 * 1] = { 1, 2, 3 };
+    matrix_data_t cd[3 * 1] = {1, 2, 3};
 
     // prepare matrix structures
     matrix_t a, b, c;
@@ -247,17 +247,17 @@ void test_matrix_multiply_vector()
 }
 
 /*!
-*  \brief Tests matrix multiplication
-*/
+ *  \brief Tests matrix multiplication
+ */
 void test_matrix_multiplyadd_vector()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 1] = { 1, 2, 3 };
+    matrix_data_t bd[3 * 1] = {1, 2, 3};
 
-    matrix_data_t cd[3 * 1] = { 10, 20, 30 };
+    matrix_data_t cd[3 * 1] = {10, 20, 30};
 
     // prepare matrix structures
     matrix_t a, b, c;
@@ -275,17 +275,17 @@ void test_matrix_multiplyadd_vector()
 }
 
 /*!
-*  \brief Tests matrix addition with B
-*/
+ *  \brief Tests matrix addition with B
+ */
 void test_matrix_add_inplace()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
     // prepare matrix structures
     matrix_t a, b;
@@ -303,17 +303,17 @@ void test_matrix_add_inplace()
 }
 
 /*!
-*  \brief Tests matrix subtraction with B
-*/
+ *  \brief Tests matrix subtraction with B
+ */
 void test_matrix_sub_inplace_b()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
     // prepare matrix structures
     matrix_t a, b;
@@ -331,17 +331,17 @@ void test_matrix_sub_inplace_b()
 }
 
 /*!
-*  \brief Tests matrix subtraction with B
-*/
+ *  \brief Tests matrix subtraction with B
+ */
 void test_matrix_sub()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
     // prepare matrix structures
     matrix_t a, b;
@@ -359,17 +359,17 @@ void test_matrix_sub()
 }
 
 /*!
-*  \brief Tests matrix copying
-*/
+ *  \brief Tests matrix copying
+ */
 void test_matrix_copy()
 {
-    matrix_data_t ad[3 * 3] = { 1, 0.5, 0,
-        0.5, 1, 0,
-        0, 0, 1 };
+    matrix_data_t ad[3 * 3] = {1, 0.5, 0,
+                               0.5, 1, 0,
+                               0, 0, 1};
 
-    matrix_data_t bd[3 * 3] = { 1, 2, 3,
-        5, 6, 7,
-        9, 10, 11 };
+    matrix_data_t bd[3 * 3] = {1, 2, 3,
+                               5, 6, 7,
+                               9, 10, 11};
 
     // prepare matrix structures
     matrix_t a, b;
@@ -387,8 +387,8 @@ void test_matrix_copy()
 }
 
 /*!
-* \brief Unit tests for matrix operations
-*/
+ * \brief Unit tests for matrix operations
+ */
 void matrix_unittests()
 {
     test_matrix_inverse();

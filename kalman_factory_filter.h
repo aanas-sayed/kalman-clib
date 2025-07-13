@@ -119,7 +119,9 @@
 
 #pragma message("** Instantiating Kalman filter \"" STRINGIFY(KALMAN_NAME) "\" with " STRINGIFY(KALMAN_NUM_STATES) " states and " STRINGIFY(KALMAN_NUM_INPUTS) " inputs")
 
+#ifndef __CONCAT
 #define __CONCAT(x, y)                                  x ## y
+#endif
 
 #define KALMAN_FILTER_BASENAME_HELPER(name)             __CONCAT(kalman_filter_, name)
 #define KALMAN_FILTER_BASENAME                          KALMAN_FILTER_BASENAME_HELPER(KALMAN_NAME)
