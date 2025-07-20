@@ -5,6 +5,10 @@
 #include "matrix.h"
 #include "kalman.h"
 
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(kalman, LOG_LEVEL_DBG);
+
 /*!
  * \brief Initializes the Kalman Filter
  * \param[in] kf The Kalman Filter structure to initialize
@@ -99,18 +103,25 @@ void kalman_predict_x(register kalman_t *const kf)
 {
     // matrices and vectors
     const struct matrix_t *RESTRICT const A = &kf->A;
+    const struct matrix_t *RESTRICT const B = &kf->B;
+    const struct matrix_t *RESTRICT const u = &kf->u;
     matrix_t *RESTRICT const x = &kf->x;
 
     // temporaries
     matrix_t *RESTRICT const xpredicted = &kf->temporary.predicted_x;
 
     /************************************************************************/
-    /* Predict next state using system dynamics                             */
-    /* x = A*x                                                              */
+    /* Predict next state using system dynamics and control input           */
+    /* x = A*x + B*u                                                        */
     /************************************************************************/
 
-    // x = A*x
-    matrix_mult_rowvector(A, x, xpredicted);
+    matrix_mult_rowvector(A, x, xpredicted); // xpredicted = A * x
+
+    if (B->rows > 0 && u->cols > 0)
+    {
+        matrix_multadd_rowvector(B, u, xpredicted); // xpredicted += B * u
+    }
+
     matrix_copy(xpredicted, x);
 }
 
@@ -118,69 +129,60 @@ void kalman_predict_x(register kalman_t *const kf)
  * \brief Performs the time update / prediction step of only the state covariance matrix
  * \param[in] kf The Kalman Filter structure to predict with.
  */
-void kalman_predict_Q(register kalman_t *const kf)
+void kalman_predict_P(register kalman_t *const kf)
 {
     // matrices and vectors
     const struct matrix_t *RESTRICT const A = &kf->A;
-    const struct matrix_t *RESTRICT const B = &kf->B;
     struct matrix_t *RESTRICT const P = &kf->P;
+    const struct matrix_t *RESTRICT const Q = &kf->Q;
 
     // temporaries
     matrix_data_t *RESTRICT const aux = kf->temporary.aux;
     struct matrix_t *RESTRICT const P_temp = &kf->temporary.P;
-    struct matrix_t *RESTRICT const BQ_temp = &kf->temporary.BQ;
 
     /************************************************************************/
-    /* Predict next covariance using system dynamics and input              */
-    /* P = A*P*A' + B*Q*B'                                                  */
+    /* Predict next covariance using system dynamics and process noise      */
+    /* P = A * P * A' + Q                                                   */
     /************************************************************************/
 
-    // P = A*P*A'
-    matrix_mult(A, P, P_temp, aux);   // temp = A*P
-    matrix_mult_transb(P_temp, A, P); // P = temp*A'
+    // P = A * P * A'
+    matrix_mult(A, P, P_temp, aux);   // P_temp = A * P
+    matrix_mult_transb(P_temp, A, P); // P = A * P * A'
 
-    // P = P + B*Q*B'
-    if (kf->B.rows > 0)
-    {
-        matrix_mult(B, &kf->Q, BQ_temp, aux); // temp = B*Q
-        matrix_multadd_transb(BQ_temp, B, P); // P += temp*B'
-    }
+    // P = P + Q
+    matrix_add_inplace(P, Q); // P += Q
 }
 
 /*!
  * \brief Performs the time update / prediction step of only the state covariance matrix
  * \param[in] kf The Kalman Filter structure to predict with.
+ * \param[in] lambda Tuning parameter (usually 1.0, < 1.0 to increase uncertainty)
  */
-void kalman_predict_Q_tuned(register kalman_t *const kf, matrix_data_t lambda)
+void kalman_predict_P_tuned(register kalman_t *const kf, matrix_data_t lambda)
 {
     // matrices and vectors
     const struct matrix_t *RESTRICT const A = &kf->A;
-    const struct matrix_t *RESTRICT const B = &kf->B;
     struct matrix_t *RESTRICT const P = &kf->P;
+    const struct matrix_t *RESTRICT const Q = &kf->Q;
 
     // temporaries
     matrix_data_t *RESTRICT const aux = kf->temporary.aux;
     struct matrix_t *RESTRICT const P_temp = &kf->temporary.P;
-    struct matrix_t *RESTRICT const BQ_temp = &kf->temporary.BQ;
 
     /************************************************************************/
-    /* Predict next covariance using system dynamics and input              */
-    /* P = A*P*A' * 1/lambda^2 + B*Q*B'                                     */
+    /* Predict next covariance using system dynamics and process noise      */
+    /* P = (1 / lambda^2) * A * P * A' + Q                                  */
     /************************************************************************/
 
-    // lambda = 1/lambda^2
-    lambda = (matrix_data_t)1.0 / (lambda * lambda); // TODO: This should be precalculated, e.g. using kalman_set_lambda(...);
+    // lambda = 1 / (lambda^2)
+    lambda = (matrix_data_t)1.0 / (lambda * lambda); // TODO: precalculate if called repeatedly
 
-    // P = A*P*A'
-    matrix_mult(A, P, P_temp, aux);                // temp = A*P
-    matrix_multscale_transb(P_temp, A, lambda, P); // P = temp*A' * 1/(lambda^2)
+    // P = (1 / lambda^2) * A * P * A'
+    matrix_mult(A, P, P_temp, aux);                // P_temp = A * P
+    matrix_multscale_transb(P_temp, A, lambda, P); // P = lambda * P_temp * A'
 
-    // P = P + B*Q*B'
-    if (kf->B.rows > 0)
-    {
-        matrix_mult(B, &kf->Q, BQ_temp, aux); // temp = B*Q
-        matrix_multadd_transb(BQ_temp, B, P); // P += temp*B'
-    }
+    // P = P + Q
+    matrix_add_inplace(P, Q); // P += Q
 }
 
 /*!
@@ -195,6 +197,8 @@ void kalman_correct(kalman_t *kf, kalman_measurement_t *kfm)
     struct matrix_t *RESTRICT const S = &kfm->S;
     struct matrix_t *RESTRICT const y = &kfm->y;
     struct matrix_t *RESTRICT const x = &kf->x;
+    struct matrix_t *RESTRICT const z = &kfm->z;
+    struct matrix_t *RESTRICT const R = &kfm->R;
 
     // temporaries
     matrix_data_t *RESTRICT const aux = kfm->temporary.aux;
@@ -210,13 +214,13 @@ void kalman_correct(kalman_t *kf, kalman_measurement_t *kfm)
     /************************************************************************/
 
     // y = z - H*x
-    matrix_mult_rowvector(H, x, y);
-    matrix_sub_inplace_b(&kfm->z, y);
+    matrix_mult_rowvector(H, x, y); // y = H * x
+    matrix_sub_inplace_b(z, y);     // y = z - y
 
     // S = H*P*H' + R
     matrix_mult(H, P, temp_HP, aux);   // temp = H*P
     matrix_mult_transb(temp_HP, H, S); // S = temp*H'
-    matrix_add_inplace(S, &kfm->R);    // S += R
+    matrix_add_inplace(S, R);          // S += R
 
     /************************************************************************/
     /* Calculate Kalman gain                                                */
@@ -245,6 +249,7 @@ void kalman_correct(kalman_t *kf, kalman_measurement_t *kfm)
     /************************************************************************/
 
     // P = P - K*(H*P)
+    // TODO: Avoid recomputing H*P if possible
     matrix_mult(H, P, temp_HP, aux);        // temp_HP = H*P
     matrix_mult(K, temp_HP, temp_KHP, aux); // temp_KHP = K*temp_HP
     matrix_sub(P, temp_KHP, P);             // P -= temp_KHP
@@ -255,7 +260,7 @@ void kalman_correct(kalman_t *kf, kalman_measurement_t *kfm)
  * \param[in] kf The Kalman Filter structure
  * \return The state vector x.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_state_vector(kalman_t *kf)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_state_vector_x(kalman_t *kf)
 {
     return &(kf->x);
 }
@@ -265,7 +270,7 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_state_vector(kalman_t *kf)
  * \param[in] kf The Kalman Filter structure
  * \return The state transition matrix A.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_state_transition(kalman_t *kf)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_state_transition_A(kalman_t *kf)
 {
     return &(kf->A);
 }
@@ -275,7 +280,7 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_state_transition(kalman_t *kf
  * \param[in] kf The Kalman Filter structure
  * \return The system covariance matrix.
  */
-PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_system_covariance(kalman_t *kf)
+PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_system_covariance_P(kalman_t *kf)
 {
     return &(kf->P);
 }
@@ -285,7 +290,7 @@ PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_system_covariance(kalman_t *kf)
  * \param[in] kf The Kalman Filter structure
  * \return The input vector u.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_vector(kalman_t *kf)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_vector_u(kalman_t *kf)
 {
     return &(kf->u);
 }
@@ -295,17 +300,17 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_vector(kalman_t *kf)
  * \param[in] kf The Kalman Filter structure
  * \return The input transition matrix B.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_transition(kalman_t *kf)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_transition_B(kalman_t *kf)
 {
     return &(kf->B);
 }
 
 /*!
- * \brief Gets a pointer to the input covariance matrix P.
+ * \brief Gets a pointer to the input covariance matrix Q.
  * \param[in] kf The Kalman Filter structure
- * \return The input covariance matrix.
+ * \return The input covariance matrix Q.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_covariance(kalman_t *kf)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_covariance_Q(kalman_t *kf)
 {
     return &(kf->Q);
 }
@@ -315,7 +320,7 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_input_covariance(kalman_t *kf
  * \param[in] kfm The Kalman Filter measurement structure.
  * \return The measurement vector z.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_measurement_vector(kalman_measurement_t *kfm)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_measurement_vector_z(kalman_measurement_t *kfm)
 {
     return &(kfm->z);
 }
@@ -325,7 +330,7 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_measurement_vector(kalman_mea
  * \param[in] kfm The Kalman Filter measurement structure.
  * \return The measurement transformation matrix H.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_measurement_transformation(kalman_measurement_t *kfm)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_measurement_transformation_H(kalman_measurement_t *kfm)
 {
     return &(kfm->H);
 }
@@ -335,7 +340,7 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_measurement_transformation(ka
  * \param[in] kfm The Kalman Filter measurement structure.
  * \return The process noise matrix R.
  */
-HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_process_noise(kalman_measurement_t *kfm)
+HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_process_noise_R(kalman_measurement_t *kfm)
 {
     return &(kfm->R);
 }
@@ -348,7 +353,7 @@ HOT PURE EXTERN_INLINE_KALMAN matrix_t *kalman_get_process_noise(kalman_measurem
  * This call assumes that the input covariance and variables are already set in the filter structure.
  *
  * \see kalman_predict_x
- * \see kalman_predict_Q
+ * \see kalman_predict_P
  */
 EXTERN_INLINE_KALMAN void kalman_predict(kalman_t *kf)
 {
@@ -360,11 +365,11 @@ EXTERN_INLINE_KALMAN void kalman_predict(kalman_t *kf)
     kalman_predict_x(kf);
 
     /************************************************************************/
-    /* Predict next covariance using system dynamics and input              */
-    /* P = A*P*A' + B*Q*B'                                                  */
+    /* Predict next covariance using system dynamics                        */
+    /* P = A*P*A' + Q                                                       */
     /************************************************************************/
 
-    kalman_predict_Q(kf);
+    kalman_predict_P(kf);
 }
 
 /*!
@@ -375,7 +380,7 @@ EXTERN_INLINE_KALMAN void kalman_predict(kalman_t *kf)
  * This call assumes that the input covariance and variables are already set in the filter structure.
  *
  * \see kalman_predict_x
- * \see kalman_predict_Q_tuned
+ * \see kalman_predict_P_tuned
  */
 HOT EXTERN_INLINE_KALMAN void kalman_predict_tuned(kalman_t *kf, matrix_data_t lambda)
 {
@@ -387,9 +392,9 @@ HOT EXTERN_INLINE_KALMAN void kalman_predict_tuned(kalman_t *kf, matrix_data_t l
     kalman_predict_x(kf);
 
     /************************************************************************/
-    /* Predict next covariance using system dynamics and input              */
-    /* P = A*P*A' * 1/lambda^2 + B*Q*B'                                     */
+    /* Predict next covariance using system dynamics                        */
+    /* P = (1 / lambda^2) * A*P*A' + Q                                     */
     /************************************************************************/
 
-    kalman_predict_Q_tuned(kf, lambda);
+    kalman_predict_P_tuned(kf, lambda);
 }

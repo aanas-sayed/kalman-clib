@@ -1,18 +1,18 @@
 /*!
-* \brief Example of the Kalman filter
-*
-* In this example, the gravity constant (~9.81 m/s^2) will be estimated using only
-* measurements of the position. These measurements have a variance of var(s) = 0.5m.
-*
-* The formulas used are:
-* s = s + v*T + g*0.5*T^2
-* v = v + g*T
-* g = g
-*
-* The time constant is set to T = 1s.
-*
-* The initial estimation of the gravity constant is set to 6 m/s^2.
-*/
+ * \brief Example of the Kalman filter
+ *
+ * In this example, the gravity constant (~9.81 m/s^2) will be estimated using only
+ * measurements of the position. These measurements have a variance of var(s) = 0.5m.
+ *
+ * The formulas used are:
+ * s = s + v*T + g*0.5*T^2
+ * v = v + g*T
+ * g = g
+ *
+ * The time constant is set to T = 1s.
+ *
+ * The initial estimation of the gravity constant is set to 6 m/s^2.
+ */
 
 #define EXTERN_INLINE_MATRIX static INLINE
 #define EXTERN_INLINE_KALMAN static INLINE
@@ -35,8 +35,8 @@
 #include "kalman_factory_cleanup.h"
 
 /*!
-* \brief Initializes the gravity Kalman filter
-*/
+ * \brief Initializes the gravity Kalman filter
+ */
 static void kalman_gravity_init()
 {
     /************************************************************************/
@@ -48,7 +48,7 @@ static void kalman_gravity_init()
     /************************************************************************/
     /* set initial state                                                    */
     /************************************************************************/
-    matrix_t *x = kalman_get_state_vector(kf);
+    matrix_t *x = kalman_get_state_vector_x(kf);
     x->data[0] = 0; // s_i
     x->data[1] = 0; // v_i
     x->data[2] = 6; // g_i
@@ -56,55 +56,55 @@ static void kalman_gravity_init()
     /************************************************************************/
     /* set state transition                                                 */
     /************************************************************************/
-    matrix_t *A = kalman_get_state_transition(kf);
+    matrix_t *A = kalman_get_state_transition_A(kf);
 
     // set time constant
     const matrix_data_t T = 1;
 
     // transition of x to s
-    matrix_set(A, 0, 0, 1);   // 1
-    matrix_set(A, 0, 1, T);   // T
-    matrix_set(A, 0, 2, (matrix_data_t)0.5*T*T); // 0.5 * T^2
+    matrix_set(A, 0, 0, 1);                          // 1
+    matrix_set(A, 0, 1, T);                          // T
+    matrix_set(A, 0, 2, (matrix_data_t)0.5 * T * T); // 0.5 * T^2
 
     // transition of x to v
-    matrix_set(A, 1, 0, 0);   // 0
-    matrix_set(A, 1, 1, 1);   // 1
-    matrix_set(A, 1, 2, T);   // T
+    matrix_set(A, 1, 0, 0); // 0
+    matrix_set(A, 1, 1, 1); // 1
+    matrix_set(A, 1, 2, T); // T
 
     // transition of x to g
-    matrix_set(A, 2, 0, 0);   // 0
-    matrix_set(A, 2, 1, 0);   // 0
-    matrix_set(A, 2, 2, 1);   // 1
+    matrix_set(A, 2, 0, 0); // 0
+    matrix_set(A, 2, 1, 0); // 0
+    matrix_set(A, 2, 2, 1); // 1
 
     /************************************************************************/
     /* set covariance                                                       */
     /************************************************************************/
-    matrix_t *P = kalman_get_system_covariance(kf);
+    matrix_t *P = kalman_get_system_covariance_P(kf);
 
-    matrix_set_symmetric(P, 0, 0, (matrix_data_t)0.1);   // var(s)
-    matrix_set_symmetric(P, 0, 1, 0);   // cov(s,v)
-    matrix_set_symmetric(P, 0, 2, 0);   // cov(s,g)
+    matrix_set_symmetric(P, 0, 0, (matrix_data_t)0.1); // var(s)
+    matrix_set_symmetric(P, 0, 1, 0);                  // cov(s,v)
+    matrix_set_symmetric(P, 0, 2, 0);                  // cov(s,g)
 
-    matrix_set_symmetric(P, 1, 1, 1);   // var(v)
-    matrix_set_symmetric(P, 1, 2, 0);   // cov(v,g)
+    matrix_set_symmetric(P, 1, 1, 1); // var(v)
+    matrix_set_symmetric(P, 1, 2, 0); // cov(v,g)
 
-    matrix_set_symmetric(P, 2, 2, 1);   // var(g)
+    matrix_set_symmetric(P, 2, 2, 1); // var(g)
 
     /************************************************************************/
     /* set measurement transformation                                       */
     /************************************************************************/
-    matrix_t *H = kalman_get_measurement_transformation(kfm);
+    matrix_t *H = kalman_get_measurement_transformation_H(kfm);
 
-    matrix_set(H, 0, 0, 1);     // z = 1*s
-    matrix_set(H, 0, 1, 0);     //   + 0*v
-    matrix_set(H, 0, 2, 0);     //   + 0*g
+    matrix_set(H, 0, 0, 1); // z = 1*s
+    matrix_set(H, 0, 1, 0); //   + 0*v
+    matrix_set(H, 0, 2, 0); //   + 0*g
 
     /************************************************************************/
     /* set process noise                                                    */
     /************************************************************************/
-    matrix_t *R = kalman_get_process_noise(kfm);
+    matrix_t *R = kalman_get_process_noise_R(kfm);
 
-    matrix_set(R, 0, 0, (matrix_data_t)0.5);     // var(s)
+    matrix_set(R, 0, 0, (matrix_data_t)0.5); // var(s)
 }
 
 // define measurements.
@@ -129,7 +129,7 @@ static matrix_data_t real_distance[MEAS_COUNT] = {
     (matrix_data_t)593.51,
     (matrix_data_t)706.32,
     (matrix_data_t)828.94,
-    (matrix_data_t)961.38 };
+    (matrix_data_t)961.38};
 
 // define measurement noise with variance 0.5
 //
@@ -151,11 +151,11 @@ static matrix_data_t measurement_error[MEAS_COUNT] = {
     (matrix_data_t)0.75873,
     (matrix_data_t)0.18135,
     (matrix_data_t)-0.015764,
-    (matrix_data_t)0.17869 };
+    (matrix_data_t)0.17869};
 
 /*!
-* \brief Runs the gravity Kalman filter.
-*/
+ * \brief Runs the gravity Kalman filter.
+ */
 void kalman_gravity_demo()
 {
     // initialize the filter
@@ -165,8 +165,8 @@ void kalman_gravity_demo()
     kalman_t *kf = &kalman_filter_gravity;
     kalman_measurement_t *kfm = &kalman_filter_gravity_measurement_position;
 
-    matrix_t *x = kalman_get_state_vector(kf);
-    matrix_t *z = kalman_get_measurement_vector(kfm);
+    matrix_t *x = kalman_get_state_vector_x(kf);
+    matrix_t *z = kalman_get_measurement_vector_z(kfm);
 
     // filter!
     for (int i = 0; i < MEAS_COUNT; ++i)
@@ -188,8 +188,8 @@ void kalman_gravity_demo()
 }
 
 /*!
-* \brief Runs the gravity Kalman filter with lambda tuning.
-*/
+ * \brief Runs the gravity Kalman filter with lambda tuning.
+ */
 void kalman_gravity_demo_lambda()
 {
     // initialize the filter
@@ -199,8 +199,8 @@ void kalman_gravity_demo_lambda()
     kalman_t *kf = &kalman_filter_gravity;
     kalman_measurement_t *kfm = &kalman_filter_gravity_measurement_position;
 
-    matrix_t *x = kalman_get_state_vector(kf);
-    matrix_t *z = kalman_get_measurement_vector(kfm);
+    matrix_t *x = kalman_get_state_vector_x(kf);
+    matrix_t *z = kalman_get_measurement_vector_z(kfm);
 
     // forcibly increase uncertainty in every prediction step by ~20% (1/lambda^2)
     const matrix_data_t lambda = (matrix_data_t)0.9;
